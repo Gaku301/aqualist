@@ -9,14 +9,13 @@ import SettingScreen from './src/screens/SettingScreen';
 import AquariumScreen from './src/screens/AquariumScreen';
 import AquariumDetailScreen from './src/screens/AquariumDetailScreen';
 import { Button, Dialog, Portal, TextInput } from 'react-native-paper';
-// import { openRealm } from './src/realm';
-// import { BSON } from 'realm';
+import { openRealm } from './src/realm';
 
 
 Ionicons.loadFont(); // Ioniconsを読み込む時にエラーが出ないように
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
-// const realm = openRealm();
+const realm = openRealm();
 
 const HomeTab = () => {
   return (
@@ -39,17 +38,17 @@ const AquariumTab = () => {
   const hideDialog = () => setVisible(false);
   // Aquariumを保存
   const addAquarium = () => {
-    // console.log(openRealm()?.path);
-    // realm.write(() => {
-    //   realm.create('Aquarium', {
-    //     '_id': 1,
-    //     name: 'テストアクアリウム',
-    //     memo: 'これはメモ',
-    //     created_at: new Date(),
-    //   });
-    // });
-    // console.log('ok');
-    // realm.close();
+    const aquariums = realm.objects('Aquarium');
+    const last_aquariums = aquariums.sorted('_id', true)[0];
+    realm.write(() => {
+      realm.create('Aquarium', {
+        '_id': last_aquariums._id + 1,
+        name: 'テストアクアリウム',
+        memo: 'これはメモ',
+        created_at: new Date(),
+      });
+    });
+    console.log('ok');
   };
 
   // detail Dialog
@@ -99,7 +98,7 @@ const AquariumTab = () => {
           <Dialog.Title>Aquariumを追加</Dialog.Title>
           <Dialog.Content>
             <TextInput label="水槽名" style={{backgroundColor: 'white'}} />
-            <TextInput label="開始日" defaultValue={() => {
+            <TextInput label="立ち上げ日" defaultValue={() => {
               let date = new Date();
               return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
             }} style={{backgroundColor: 'white'}} />
