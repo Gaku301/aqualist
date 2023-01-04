@@ -1,15 +1,19 @@
 import React from 'react';
-import { Agenda, LocaleConfig } from 'react-native-calendars';
-import { View } from 'react-native';
-import { Button, Dialog, FAB, Paragraph, Portal, TextInput} from 'react-native-paper';
-import DropDownPicker from 'react-native-dropdown-picker';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
+import { View, Text, ScrollView } from 'react-native';
+import { Button, Card, Dialog, FAB, Paragraph, Portal, Snackbar, TextInput, Title} from 'react-native-paper';
+
+import { getEventsByDate, getMarkedDates, addEventData } from '../utils/events';
+
 
 const primaryColor = '#00BBF2';
 const grayColor = '#393E46';
-const selectGrayColor = '#ADADAD';
+const date = new Date();
+// NOTE:ゼロパディングしないとreact-native-calendarのselectedがうまく動作しない
+const today = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
 
 const HomeScreen = () => {
-  // 日本語に設定
+  // カレンダーを日本語に設定
   LocaleConfig.locales.jp = {
     monthNames: [
       '1月', '2月', '3月',
@@ -28,48 +32,72 @@ const HomeScreen = () => {
   };
   LocaleConfig.defaultLocale = 'jp';
 
-  const items = {
-    '2022-11-22': [{name: 'item 1 - any js object'}],
-    '2022-11-23': [{name: 'item 2 - any js object', height: 80}],
-    '2022-11-24': [],
-    '2022-11-25': [{name: 'item 3 - any js object'}, {name: 'any js object'}],
-    '2022-11-26': [{name: 'item 3 - any js object'}, {name: 'any js object'}],
-  };
-
+  // Dialogのstate
   const [visible, setVisible] = React.useState(false);
   const showDialog = () => setVisible(true);
-  const hideDialog = () => {
-    // selectboxのフォーカスを外す
-    setColor(selectGrayColor);
-    setOpen(false);
-    // Dialogを閉じる
-    setVisible(false);
-  };
-  const [date, setDate] = React.useState('2022-11-7');
+  const hideDialog = () => setVisible(false);
+  // カレンダーの選択されている日付
+  const [selected_date, setSelectedDate] = React.useState(today);
+  // Eventが存在するカレンダーの日付
 
-  const [open, setOpen] = React.useState(false);
-  const [value, setValue] = React.useState(null);
-  const [option, setOption] = React.useState([
-    {label: 'apple', value: 'appale'},
-    {label: 'banana', value: 'banana'},
-  ]);
-  const [color, setColor] = React.useState(selectGrayColor);
+  const [markedDates, setMarkedDates] = React.useState(getMarkedDates(today));
+  // Eventのstate
+  const [eventData, setEventData] = React.useState({
+    date: today,
+    title: '',
+    color: 'red',
+    memo: '',
+  });
+  // エラーメッセージのstate
+  const [visibleMessage, setVisibleMessage] = React.useState(false);
+  const [validateEvent, setValidateEvent] = React.useState('');
+  // 表示するEvent
+  const [events, setEvents] = React.useState(getEventsByDate(today));
+
+  // イベントを保存
+  const addEvent = () => {
+    const result = addEventData(eventData);
+    if (result !== true) {
+      // エラーメッセージを表示
+      setVisibleMessage(true);
+      setValidateEvent(result);
+      return;
+    }
+
+    // ダイアログを閉じて終了
+    hideDialog();
+  };
 
   return (
     <View style={{flex: 1}}>
-      <Agenda
-        items={items}
-        refreshControl={null}
-        showClosingKnob={true}
-        refreshing={false}
-        onDayPress={day => {
-          console.log(day);
-          setDate(day.dateString);
+      <Calendar
+        markingType={'multi-dot'}
+        markedDates={{
+          ...markedDates,
+          [selected_date]: {selected: true},
         }}
-        renderEmptyData={() => { return <View />;}}
-        // 日付ごとのitemをここで表示
-        renderItem={(item, firstItemInDay) => {
-          console.log(item);
+        onDayPress={day => {
+          // 選択日を変更
+          setSelectedDate(day.dateString);
+          // 選択日のイベントを取得
+          let targetDayEvents = getEventsByDate(day.dateString);
+          setEvents(targetDayEvents);
+          // ダイアログの「日付」をセット
+          setEventData({...eventData, date: day.dateString});
+        }}
+        // 前月のアクション
+        onPressArrowLeft={(subtractMonth, value) => {
+          const targetDate = `${value.getFullYear()}-${value.getMonth()}-01`;
+          // 一ヶ月のイベントをセットする
+          setMarkedDates(getMarkedDates(targetDate));
+          subtractMonth();
+        }}
+        // 次月のアクション
+        onPressArrowRight={(addMonth, value) => {
+          const targetDate = `${value.getFullYear()}-${value.getMonth() + 2}-01`;
+          // 一ヶ月のイベントをセットする
+          setMarkedDates(getMarkedDates(targetDate));
+          addMonth();
         }}
         theme={{
           'stylesheet.calendar.header': {
@@ -82,6 +110,25 @@ const HomeScreen = () => {
           },
         }}
       />
+      <View style={{marginVertical: 10, marginLeft: 5}}>
+        <Text>{new Date(selected_date).getMonth() + 1} / {new Date(selected_date).getDate()}</Text>
+      </View>
+      <ScrollView>
+        <View>
+          {events.map((eventValue) => {
+            return (
+              <Card style={{backgroundColor: 'white', margin: 5 }} key={eventValue._id}>
+                <Card.Content>
+                  <View style={{borderBottomColor: 'red', borderBottomWidth: 3, marginBottom: 10}}>
+                    <Title>{eventValue.title}</Title>
+                  </View>
+                  <Paragraph>{eventValue.memo}</Paragraph>
+                </Card.Content>
+              </Card>
+            );
+          })}
+        </View>
+      </ScrollView>
       <FAB
         icon="plus"
         style={{position:'absolute', margin:16, right:0, bottom:0, backgroundColor: primaryColor, borderRadius: 50,}}
@@ -92,33 +139,52 @@ const HomeScreen = () => {
         <Dialog visible={visible} onDismiss={hideDialog} style={{backgroundColor: 'white'}}>
           <Dialog.Title>イベントを追加</Dialog.Title>
           <Dialog.Content>
-            <TextInput label="日付" defaultValue={date} style={{backgroundColor: 'white'}} />
-            <DropDownPicker
-              placeholder='aquarium'
-              open={open}
-              value={value}
-              items={option}
-              setOpen={setOpen}
-              setValue={setValue}
-              setItems={setOption}
-              onOpen={() => setColor(primaryColor)}
-              onClose={() => setColor(selectGrayColor)}
-              style={{borderColor: color, borderTopColor: 'white', borderLeftColor: 'white', borderRightColor: 'white', borderRadius:0, borderWidth: 1}}
-              dropDownContainerStyle={{borderColor: color, borderWidth: 2}}
-              containerStyle={{marginVertical: 20, borderColor: color}}
-              textStyle={{color: grayColor}}
+            <TextInput
+              label="タイトル"
+              style={{backgroundColor: 'white'}}
+              onChangeText={(value) => setEventData({...eventData, title: value})}
+            />
+            <TextInput
+              label="日付"
+              defaultValue={eventData.date}
+              style={{backgroundColor: 'white'}}
+              onChangeText={(value) => setEventData({...eventData, date: value})}
             />
             <View style={{flexDirection:'row', flexWrap:'wrap', justifyContent: 'space-between'}}>
-              <TextInput label="水温" style={{backgroundColor: 'white', width: '45%'}} right={<TextInput.Affix text='°C' />} />
-              <TextInput label="水量" style={{backgroundColor: 'white', width: '45%'}} right={<TextInput.Affix text='ℓ' />} />
+              <TextInput
+                label="水温"
+                style={{backgroundColor: 'white', width: '45%'}}
+                right={<TextInput.Affix text='°C' />}
+              />
+              <TextInput
+                label="水量"
+                style={{backgroundColor: 'white', width: '45%'}}
+                right={<TextInput.Affix text='ℓ' />}
+              />
             </View>
-            <TextInput label="メモ" multiline={true} style={{backgroundColor: 'white', height:110}} />
+            <TextInput
+              label="メモ"
+              multiline={true}
+              style={{backgroundColor: 'white', height:110}}
+              onChangeText={(value) => setEventData({...eventData, memo: value})}
+            />
           </Dialog.Content>
           <Dialog.Actions style={{justifyContent: 'space-between'}}>
             <Button onPress={hideDialog} textColor={grayColor}>キャンセル</Button>
-            <Button onPress={hideDialog}>追加する</Button>
+            <Button onPress={addEvent}>追加する</Button>
           </Dialog.Actions>
         </Dialog>
+        {/* エラーメッセージ */}
+        <Snackbar
+          visible={visibleMessage}
+          onDismiss={() => setVisibleMessage(false)}
+          action={{
+            label: 'close',
+            color: 'gray',
+          }}
+        >
+          {validateEvent}
+        </Snackbar>
       </Portal>
     </View>
   );

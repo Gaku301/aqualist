@@ -4,8 +4,9 @@ const evnetSchema = {
   name: 'Event',
   properties: {
     _id: 'int',
+    title: 'string',
     date: 'date',
-    description: 'string',
+    color: 'string',
     memo: 'string',
     created_at: 'date',
   },
@@ -27,8 +28,12 @@ const aquariumSchema = {
   name: 'Aquarium',
   properties: {
     _id: 'int',
-    name: 'string',
-    memo: 'string',
+    name: 'string', // 水槽名
+    set_up_date: 'date', // 立ち上げ日
+    kind: 'int', // 海水 or 淡水
+    amount: 'string', // 水量
+    size: 'string', // サイズ
+    memo: 'string', // メモ
     created_at: 'date',
   },
   primaryKey: '_id',
@@ -39,7 +44,9 @@ const aqualistSchema = {
   properties: {
     _id: 'int',
     name: 'string',
-    size: 'number',
+    size: 'string',
+    start_date: 'string',
+    end_date: 'string',
     created_at: 'date',
   },
   primaryKey: '_id',
@@ -59,8 +66,10 @@ const settingSchema = {
 export const openRealm = () => {
   const config = {
     path: 'aqualist',
-    schema: [aquariumSchema],
+    schema: [aquariumSchema, evnetSchema, userSchema, aqualistSchema, settingSchema],
     schemaVersion: 1,
+    // マイグレーション時にデータが消えるため本番ではfalseにしておく
+    deleteRealmIfMigrationNeeded: true,
   };
 
   return new Realm(config);
