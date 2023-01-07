@@ -4,6 +4,7 @@ import { View, Text, ScrollView } from 'react-native';
 import { Button, Card, Dialog, FAB, Paragraph, Portal, Snackbar, TextInput, Title} from 'react-native-paper';
 
 import { getEventsByDate, getMarkedDates, addEventData } from '../utils/events';
+import { Picker } from '@react-native-picker/picker';
 
 
 const primaryColor = '#00BBF2';
@@ -63,7 +64,8 @@ const HomeScreen = () => {
       setValidateEvent(result);
       return;
     }
-
+    // markedDatesを更新
+    setMarkedDates(getMarkedDates(selected_date));
     // ダイアログを閉じて終了
     hideDialog();
   };
@@ -119,7 +121,7 @@ const HomeScreen = () => {
             return (
               <Card style={{backgroundColor: 'white', margin: 5 }} key={eventValue._id}>
                 <Card.Content>
-                  <View style={{borderBottomColor: 'red', borderBottomWidth: 3, marginBottom: 10}}>
+                  <View style={{borderBottomColor: eventValue.color ?? 'red', borderBottomWidth: 3, marginBottom: 10}}>
                     <Title>{eventValue.title}</Title>
                   </View>
                   <Paragraph>{eventValue.memo}</Paragraph>
@@ -168,6 +170,20 @@ const HomeScreen = () => {
               style={{backgroundColor: 'white', height:110}}
               onChangeText={(value) => setEventData({...eventData, memo: value})}
             />
+            <Picker
+              selectedValue={eventData.color}
+              onValueChange={(itemValue, itemIndex) =>
+                setEventData({...eventData, color: itemValue})
+              }
+              itemStyle={{height: 130, fontSize:16}}
+            >
+              <Picker.Item label="赤" value="red" />
+              <Picker.Item label="青" value="blue" />
+              <Picker.Item label="黒" value="black" />
+              <Picker.Item label="緑" value="green" />
+              <Picker.Item label="黄色" value="yellow" />
+              <Picker.Item label="オレンジ" value="orange" />
+            </Picker>
           </Dialog.Content>
           <Dialog.Actions style={{justifyContent: 'space-between'}}>
             <Button onPress={hideDialog} textColor={grayColor}>キャンセル</Button>

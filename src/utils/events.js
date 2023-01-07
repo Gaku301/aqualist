@@ -70,7 +70,7 @@ export const getMarkedDates = (targetDate) => {
         markedDates[dateStr].dots.push(dotData);
       } else {
         // その日付がない場合はそのまま追加
-        markedDates[dateStr] = {dots: [{key: eventVal._id, color: 'red'}]};
+        markedDates[dateStr] = {dots: [{key: eventVal._id, color: eventVal.color}]};
       }
     });
   } catch (error) {
